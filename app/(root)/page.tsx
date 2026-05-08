@@ -1,81 +1,79 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, Dumbbell, ListChecks } from "lucide-react";
+import { Activity, ArrowRight, CalendarDays, Dumbbell, History, Library, ListChecks, Play } from "lucide-react";
 import { toast } from "sonner";
-import { CartesianGrid, LabelList, Line, LineChart, Pie, PieChart, XAxis, YAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { SearchInput } from "@/src/components/gymbro/SearchInput";
 import { ExerciseService } from "@/src/services/ExerciseService";
-import { ProgressService } from "@/src/services/ProgressService";
 import { RoutineService } from "@/src/services/RoutineService";
+import { WorkoutService } from "@/src/services/WorkoutService";
 
-type TabValue = "exercises" | "routines" | "muscles";
+type WorkoutStatus = "COMPLETED" | "IN_PROGRESS" | "CANCELLED";
 
-type ExerciseOption = {
+type WorkoutSummary = {
   id: number;
-  name: string;
-};
-
-type RoutineOption = {
-  id: number;
-  name: string;
-};
-
-type Pagination = {
-  page: number;
-  totalPages: number;
-};
-
-type ExerciseChartPoint = {
+  name?: string | null;
   date: string;
-  workoutSessionId: number;
-  workoutName?: string | null;
-  workingVolume: number;
-  totalVolume: number;
-  bestWeight?: number | null;
-  totalReps: number;
-  totalSets: number;
+  status: WorkoutStatus;
+  routine?: {
+    name: string;
+  } | null;
 };
 
-type RoutineChartPoint = {
-  date: string;
-  workoutSessionId: number;
-  workoutName?: string | null;
-  workingVolume: number;
-  totalVolume: number;
-  totalSets: number;
-  totalReps: number;
-  exerciseCount: number;
+type DashboardStats = {
+  routines: number;
+  exercises: number;
+  workouts: number;
+  latestWorkout?: WorkoutSummary | null;
+  activeWorkoutId?: number | null;
 };
 
-type BreakdownItem = {
-  setType?: string;
-  muscleGroup?: string;
-  volume: number;
-  setCount: number;
-  percentage: number;
-};
-
-type ExerciseProgress = {
-  chart: ExerciseChartPoint[];
-  breakdown: BreakdownItem[];
-};
-
-type RoutineProgress = {
-  chart: RoutineChartPoint[];
-};
-
-const chartColors = ["#c8f135", "#5eead4", "#f0f0ee", "#a78bfa", "#f59e0b"];
-
-const tabs: Array<{ value: TabValue; label: string; icon: typeof Dumbbell }> = [
-  { value: "exercises", label: "Exercises", icon: Dumbbell },
-  { value: "routines", label: "Routines", icon: ListChecks },
-  { value: "muscles", label: "Muscle", icon: Activity },
+const navigationCards = [
+  {
+    title: "Start Workout",
+    description: "Resume or begin today's session",
+    href: "/workout/active",
+    icon: Play,
+    accent: "#c8f135",
+    imageSrc: "/assets/cards/home-start-workout.png",
+  },
+  {
+    title: "Workout History",
+    description: "Review completed sessions",
+    href: "/workout",
+    icon: History,
+    accent: "#c8f135",
+    imageSrc: "/assets/cards/home-workout-history.png",
+  },
+  {
+    title: "Exercises",
+    description: "Manage your movement library",
+    href: "/exercises",
+    icon: Library,
+    accent: "#c8f135",
+    imageSrc: "/assets/cards/exercises.png",
+  },
+  {
+    title: "Routines",
+    description: "Build reusable templates",
+    href: "/routines",
+    icon: ListChecks,
+    accent: "#c8f135",
+    imageSrc: "/assets/cards/routine.png",
+  },
+  {
+    title: "Progress",
+    description: "Track volume and trends",
+    href: "/progress",
+    icon: Activity,
+    accent: "#c8f135",
+    imageSrc: "/assets/cards/progress-card.png",
+  },
 ];
 
 function getErrorMessage(error: unknown) {
@@ -87,379 +85,141 @@ function getErrorMessage(error: unknown) {
   return "Something went wrong";
 }
 
-function parseExercises(response: unknown): ExerciseOption[] {
-  return (response as { data?: { data?: { exercises?: ExerciseOption[] } } }).data?.data?.exercises ?? [];
+function parseTotal(response: unknown) {
+  return (response as { data?: { data?: { pagination?: { total?: number } } } }).data?.data?.pagination?.total ?? 0;
 }
 
-function parseRoutines(response: unknown): RoutineOption[] {
-  return (response as { data?: { data?: { routines?: RoutineOption[] } } }).data?.data?.routines ?? [];
+function parseWorkouts(response: unknown): WorkoutSummary[] {
+  return (response as { data?: { data?: { workouts?: WorkoutSummary[] } } }).data?.data?.workouts ?? [];
 }
 
-function parsePagination(response: unknown): Pagination {
-  const pagination = (response as { data?: { data?: { pagination?: Partial<Pagination> } } }).data?.data?.pagination;
-
-  return {
-    page: pagination?.page ?? 1,
-    totalPages: pagination?.totalPages ?? 1,
-  };
-}
-
-function parseExerciseProgress(response: unknown) {
-  return (response as { data?: { data?: { chart?: ExerciseChartPoint[] } } }).data?.data?.chart ?? [];
-}
-
-function parseRoutineProgress(response: unknown) {
-  return (response as { data?: { data?: { chart?: RoutineChartPoint[] } } }).data?.data?.chart ?? [];
-}
-
-function parseBreakdown(response: unknown): BreakdownItem[] {
-  return (response as { data?: { data?: { breakdown?: BreakdownItem[] } } }).data?.data?.breakdown ?? [];
+function parseActiveWorkoutId(response: unknown) {
+  return (response as { data?: { data?: { id?: number } } }).data?.data?.id ?? null;
 }
 
 function formatDate(value?: string) {
-  if (!value) return "Not set";
+  if (!value) return "No sessions yet";
 
   return new Date(value).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
+    year: "numeric",
   });
 }
 
-function formatEnum(value?: string) {
-  if (!value) return "Other";
-
-  return value
-    .split("_")
-    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-    .join(" ");
-}
-
-function formatNumber(value?: number | null) {
-  if (value === null || value === undefined) return "0";
-
-  return new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-async function fetchAllExercises() {
-  const limit = 100;
-  let page = 1;
-  let totalPages = 1;
-  const allExercises: ExerciseOption[] = [];
-
-  while (page <= totalPages && page <= 20) {
-    const response = await ExerciseService.getAllExercises({ page, limit });
-    allExercises.push(...parseExercises(response));
-    totalPages = parsePagination(response).totalPages;
-    page += 1;
-  }
-
-  return allExercises;
-}
-
-async function fetchAllRoutines() {
-  const limit = 100;
-  let page = 1;
-  let totalPages = 1;
-  const allRoutines: RoutineOption[] = [];
-
-  while (page <= totalPages && page <= 20) {
-    const response = await RoutineService.getAllRoutines({ page, limit });
-    allRoutines.push(...parseRoutines(response));
-    totalPages = parsePagination(response).totalPages;
-    page += 1;
-  }
-
-  return allRoutines;
-}
-
-async function mapWithConcurrency<T, R>(items: T[], limit: number, mapper: (item: T) => Promise<R>) {
-  const results: R[] = [];
-
-  for (let index = 0; index < items.length; index += limit) {
-    const batch = items.slice(index, index + limit);
-    results.push(...(await Promise.all(batch.map(mapper))));
-  }
-
-  return results;
-}
-
-function EmptyChartMessage({ message = "Complete a few workouts to see progress charts." }: { message?: string }) {
-  return <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-6 text-center text-sm text-white/35">{message}</div>;
-}
-
-function MiniLineChart({
-  data,
-  series,
-  heightClassName = "h-56",
+function HomeNavCard({
+  title,
+  description,
+  href,
+  icon: Icon,
+  accent,
+  imageSrc,
+  className,
 }: {
-  data: Array<Record<string, number | string | null | undefined>>;
-  series: Array<{ key: string; label: string; color: string }>;
-  heightClassName?: string;
+  title: string;
+  description: string;
+  href: string;
+  icon: typeof Dumbbell;
+  accent: string;
+  imageSrc: string;
+  className?: string;
 }) {
-  if (!data.length) {
-    return <EmptyChartMessage />;
-  }
-
-  const chartConfig = series.reduce<ChartConfig>((config, item) => {
-    config[item.key] = {
-      label: item.label,
-      color: item.color,
-    };
-    return config;
-  }, {});
-
-  const chartData = data.map((item) => ({
-    ...item,
-    label: formatDate(item.date as string),
-  }));
-
   return (
-    <div className="space-y-3">
-      <ChartContainer
-        config={chartConfig}
-        className={cn("w-full rounded-2xl bg-[#111112] p-2 text-white/40 [&_.recharts-cartesian-axis-tick_text]:fill-white/30 [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-white/8", heightClassName)}
-      >
-        <LineChart data={chartData} margin={{ top: 12, right: 12, left: 10, bottom: 0 }}>
-          <CartesianGrid vertical={false} />
-          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-          <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
-          <ChartTooltip cursor={false} content={<ChartTooltipContent className="border-white/10 bg-[#111112] text-[#f0f0ee]" />} />
-          {series.map((line) => (
-            <Line key={line.key} type="monotone" dataKey={line.key} stroke={`var(--color-${line.key})`} strokeWidth={2.5} dot={false} />
-          ))}
-        </LineChart>
-      </ChartContainer>
-      <div className="flex flex-wrap gap-x-4 gap-y-2">
-        {series.map((line) => (
-          <div key={line.key} className="flex items-center gap-2 text-xs text-white/35">
-            <span className="size-2 rounded-full" style={{ backgroundColor: line.color }} />
-            {line.label}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DonutChart({ data, labelKey }: { data: BreakdownItem[]; labelKey: "setType" | "muscleGroup" }) {
-  const activeData = data.filter((item) => item.volume > 0);
-  const totalVolume = activeData.reduce((total, item) => total + item.volume, 0);
-
-  if (!activeData.length || totalVolume === 0) {
-    return <EmptyChartMessage />;
-  }
-
-  const chartData = activeData.map((item, index) => ({
-    ...item,
-    label: formatEnum(item[labelKey]),
-    fill: chartColors[index % chartColors.length],
-  }));
-
-  const chartConfig = chartData.reduce<ChartConfig>((config, item) => {
-    const key = String(item[labelKey]);
-    config[key] = {
-      label: item.label,
-      color: item.fill,
-    };
-    return config;
-  }, {});
-
-  return (
-    <div className="space-y-4">
-      <ChartContainer config={chartConfig} className="mx-auto aspect-square h-52 text-white/40">
-        <PieChart>
-          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel className="border-white/10 bg-[#111112] text-[#f0f0ee]" />} />
-          <Pie data={chartData} dataKey="volume" nameKey="label" innerRadius={54} outerRadius={82} stroke="#1a1a1b" strokeWidth={3}>
-            <LabelList dataKey="percentage" className="fill-[#0e0e0f] text-xs font-semibold" stroke="none" formatter={(value) => `${Number(value ?? 0)}%`} />
-          </Pie>
-        </PieChart>
-      </ChartContainer>
-      <div className="grid w-full gap-2">
-        {chartData.map((item, index) => (
-          <div key={`${item[labelKey]}-${index}`} className="flex items-center justify-between gap-3 text-sm">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
-              <span className="truncate text-[#f0f0ee]">{item.label}</span>
-            </div>
-            <span className="text-white/40">{item.percentage}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MetricPill({ label, value }: { label: string; value: string | number | null | undefined }) {
-  return (
-    <div className="rounded-xl border border-white/7 bg-white/[0.03] px-3 py-2">
-      <p className="text-[10px] font-semibold tracking-widest text-white/35 uppercase">{label}</p>
-      <p className="mt-1 truncate text-sm font-semibold text-[#f0f0ee]">{value ?? "Not set"}</p>
-    </div>
-  );
-}
-
-function ExerciseProgressCard({ exercise, progress }: { exercise: ExerciseOption; progress?: ExerciseProgress }) {
-  const latestSession = progress?.chart.at(-1);
-
-  return (
-    <Card className="rounded-2xl border-white/6 bg-[#1a1a1b]">
-      <CardHeader className="gap-3">
+    <Link
+      href={href}
+      className={cn(
+        "group relative min-h-40 overflow-hidden rounded-2xl border border-white/7 bg-[#1a1a1b] p-4 transition-all hover:border-[#c8f135]/35 hover:bg-[#1d1d1e]",
+        className,
+      )}
+    >
+      <Image src={imageSrc} alt="" width={190} height={190} className="pointer-events-none absolute -right-16 top-1/2 size-52 -translate-y-1/2 object-contain opacity-[0.08] transition-opacity group-hover:opacity-[0.14]" />
+      <div className="pointer-events-none absolute -right-10 top-1/2 h-36 w-36 -translate-y-1/2 rounded-full opacity-40 blur-2xl" style={{ backgroundColor: accent }} />
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[radial-gradient(circle_at_left,rgba(200,241,53,0.08)_0%,transparent_62%)]" />
+      <div className="relative z-10 flex h-full flex-col justify-between gap-8">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            <CardTitle className="truncate text-white">{exercise.name}</CardTitle>
-            <CardDescription className="text-white/40">Volume, best weight, and reps over time</CardDescription>
+          <div className="flex size-11 items-center justify-center rounded-xl border bg-white/[0.03]" style={{ borderColor: `${accent}40`, color: accent }}>
+            <Icon className="size-5" />
           </div>
-          <Badge className="shrink-0 rounded-full border-[#c8f135]/15 bg-[#c8f135]/10 text-[#c8f135] hover:bg-[#c8f135]/10">{progress?.chart.length ?? 0}</Badge>
+          <ArrowRight className="size-4 text-white/20 transition-colors group-hover:text-[#c8f135]" />
         </div>
-        {latestSession ? (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <MetricPill label="Latest" value={formatDate(latestSession.date)} />
-            <MetricPill label="Volume" value={formatNumber(latestSession.workingVolume)} />
-            <MetricPill label="Best" value={formatNumber(latestSession.bestWeight)} />
-            <MetricPill label="Reps" value={formatNumber(latestSession.totalReps)} />
-          </div>
-        ) : null}
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <MiniLineChart
-          data={progress?.chart ?? []}
-          series={[
-            { key: "workingVolume", label: "Working volume", color: chartColors[0] },
-            { key: "bestWeight", label: "Best weight", color: chartColors[1] },
-            { key: "totalReps", label: "Total reps", color: chartColors[3] },
-          ]}
-        />
-        <div className="border-t border-white/7 pt-4">
-          <p className="mb-3 text-[11px] font-semibold tracking-widest text-white/35 uppercase">Set Type</p>
-          <DonutChart data={progress?.breakdown ?? []} labelKey="setType" />
+        <div className="space-y-1">
+          <h2 className="text-[15px] font-semibold text-[#f0f0ee]">{title}</h2>
+          <p className="text-[12px] leading-5 text-white/35">{description}</p>
         </div>
+      </div>
+    </Link>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  detail,
+  icon: Icon,
+  imageSrc,
+}: {
+  label: string;
+  value: string | number;
+  detail: string;
+  icon: typeof Dumbbell;
+  imageSrc: string;
+}) {
+  return (
+    <Card className="group relative overflow-hidden rounded-2xl border-[#c8f135]/12 bg-[#1a1a1b] py-0 transition-colors hover:border-[#c8f135]/30">
+      <Image src={imageSrc} alt="" width={140} height={140} className="pointer-events-none absolute -right-10 top-1/2 size-36 -translate-y-1/2 object-contain opacity-[0.06] transition-opacity group-hover:opacity-[0.12]" />
+      <div className="pointer-events-none absolute -right-8 top-1/2 h-32 w-32 -translate-y-1/2 rounded-full bg-[#c8f135] opacity-[0.12] blur-2xl" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_right,rgba(200,241,53,0.08)_0%,transparent_62%)]" />
+      <CardContent className="relative z-10 p-4">
+        <div className="flex size-9 items-center justify-center rounded-xl border border-[#c8f135]/18 bg-[#c8f135]/8 text-[#c8f135]">
+          <Icon className="size-4" />
+        </div>
+        <p className="mt-4 text-[10px] font-semibold tracking-widest text-white/35 uppercase">{label}</p>
+        <p className="mt-2 truncate text-2xl font-semibold text-[#f0f0ee]">{value}</p>
+        <p className="mt-1 truncate text-xs text-white/30">{detail}</p>
       </CardContent>
     </Card>
-  );
-}
-
-function RoutineProgressCard({ routine, progress }: { routine: RoutineOption; progress?: RoutineProgress }) {
-  const latestSession = progress?.chart.at(-1);
-
-  return (
-    <Card className="rounded-2xl border-white/6 bg-[#1a1a1b]">
-      <CardHeader className="gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            <CardTitle className="truncate text-white">{routine.name}</CardTitle>
-            <CardDescription className="text-white/40">Routine volume compared over completed sessions</CardDescription>
-          </div>
-          <Badge className="shrink-0 rounded-full border-[#c8f135]/15 bg-[#c8f135]/10 text-[#c8f135] hover:bg-[#c8f135]/10">{progress?.chart.length ?? 0}</Badge>
-        </div>
-        {latestSession ? (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            <MetricPill label="Latest" value={formatDate(latestSession.date)} />
-            <MetricPill label="Volume" value={formatNumber(latestSession.workingVolume)} />
-            <MetricPill label="Sets" value={formatNumber(latestSession.totalSets)} />
-            <MetricPill label="Reps" value={formatNumber(latestSession.totalReps)} />
-            <MetricPill label="Exercises" value={formatNumber(latestSession.exerciseCount)} />
-          </div>
-        ) : null}
-      </CardHeader>
-      <CardContent>
-        <MiniLineChart
-          data={progress?.chart ?? []}
-          series={[
-            { key: "workingVolume", label: "Working volume", color: chartColors[0] },
-            { key: "totalVolume", label: "Total volume", color: chartColors[1] },
-          ]}
-        />
-      </CardContent>
-    </Card>
-  );
-}
-
-function LoadingCards() {
-  return (
-    <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <Card key={index} className="rounded-2xl border-white/6 bg-[#1a1a1b]">
-          <CardContent className="space-y-4 p-4">
-            <Skeleton className="h-5 w-36 bg-white/10" />
-            <Skeleton className="h-16 w-full rounded-xl bg-white/10" />
-            <Skeleton className="h-56 w-full rounded-2xl bg-white/10" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
   );
 }
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<TabValue>("exercises");
-  const [exercises, setExercises] = useState<ExerciseOption[]>([]);
-  const [routines, setRoutines] = useState<RoutineOption[]>([]);
-  const [exerciseProgress, setExerciseProgress] = useState<Record<number, ExerciseProgress>>({});
-  const [routineProgress, setRoutineProgress] = useState<Record<number, RoutineProgress>>({});
-  const [muscleGroupBreakdown, setMuscleGroupBreakdown] = useState<BreakdownItem[]>([]);
-  const [exerciseSearch, setExerciseSearch] = useState("");
-  const [routineSearch, setRoutineSearch] = useState("");
+  const [stats, setStats] = useState<DashboardStats>({
+    routines: 0,
+    exercises: 0,
+    workouts: 0,
+    latestWorkout: null,
+    activeWorkoutId: null,
+  });
   const [isLoading, setIsLoading] = useState(true);
 
-  const filteredExercises = useMemo(() => {
-    const query = exerciseSearch.trim().toLowerCase();
-    if (!query) return exercises;
+  const activeCard = useMemo(() => {
+    if (!stats.activeWorkoutId) return null;
 
-    return exercises.filter((exercise) => exercise.name.toLowerCase().includes(query));
-  }, [exerciseSearch, exercises]);
+    return {
+      label: "Active workout",
+      href: "/workout/active",
+    };
+  }, [stats.activeWorkoutId]);
 
-  const filteredRoutines = useMemo(() => {
-    const query = routineSearch.trim().toLowerCase();
-    if (!query) return routines;
-
-    return routines.filter((routine) => routine.name.toLowerCase().includes(query));
-  }, [routineSearch, routines]);
-
-  const fetchDashboardData = useCallback(async () => {
+  const fetchStats = useCallback(async () => {
     setIsLoading(true);
 
     try {
-      const [exerciseOptions, routineOptions, muscleGroupResponse] = await Promise.all([fetchAllExercises(), fetchAllRoutines(), ProgressService.getMuscleGroupVolumeBreakdown()]);
+      const [routinesResponse, exercisesResponse, workoutsResponse, activeResponse] = await Promise.allSettled([
+        RoutineService.getAllRoutines({ page: 1, limit: 1 }),
+        ExerciseService.getAllExercises({ page: 1, limit: 1 }),
+        WorkoutService.getWorkoutHistory({ page: 1, limit: 5 }),
+        WorkoutService.getActiveWorkout(),
+      ]);
 
-      setExercises(exerciseOptions);
-      setRoutines(routineOptions);
-      setMuscleGroupBreakdown(parseBreakdown(muscleGroupResponse));
+      const workouts = workoutsResponse.status === "fulfilled" ? parseWorkouts(workoutsResponse.value) : [];
 
-      const exerciseEntries = await mapWithConcurrency(
-        exerciseOptions,
-        3,
-        async (exercise) => {
-          const [progressResponse, breakdownResponse] = await Promise.all([ProgressService.getExerciseProgress(exercise.id), ProgressService.getExerciseSetTypeBreakdown(exercise.id)]);
-
-          return [
-            exercise.id,
-            {
-              chart: parseExerciseProgress(progressResponse),
-              breakdown: parseBreakdown(breakdownResponse),
-            },
-          ] as const;
-        },
-      );
-
-      const routineEntries = await mapWithConcurrency(
-        routineOptions,
-        3,
-        async (routine) => {
-          const response = await ProgressService.getRoutineVolumeProgress(routine.id);
-
-          return [
-            routine.id,
-            {
-              chart: parseRoutineProgress(response),
-            },
-          ] as const;
-        },
-      );
-
-      setExerciseProgress(Object.fromEntries(exerciseEntries));
-      setRoutineProgress(Object.fromEntries(routineEntries));
+      setStats({
+        routines: routinesResponse.status === "fulfilled" ? parseTotal(routinesResponse.value) : 0,
+        exercises: exercisesResponse.status === "fulfilled" ? parseTotal(exercisesResponse.value) : 0,
+        workouts: workoutsResponse.status === "fulfilled" ? parseTotal(workoutsResponse.value) : 0,
+        latestWorkout: workouts[0] ?? null,
+        activeWorkoutId: activeResponse.status === "fulfilled" ? parseActiveWorkoutId(activeResponse.value) : null,
+      });
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -469,108 +229,53 @@ export default function HomePage() {
 
   useEffect(() => {
     queueMicrotask(() => {
-      fetchDashboardData();
+      fetchStats();
     });
-  }, [fetchDashboardData]);
+  }, [fetchStats]);
 
   return (
-    <div className="space-y-5 pb-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#f0f0ee]">Progress</h1>
-        <p className="text-sm text-white/40">Track your completed workout trends without digging through menus</p>
+    <div className="space-y-6 pb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#f0f0ee]">Home</h1>
+          <p className="text-sm text-white/40">Jump into the parts of Gymbro you actually use.</p>
+        </div>
+        {activeCard ? (
+          <Badge asChild className="w-fit border-[#c8f135]/15 bg-[#c8f135]/10 px-3 py-1.5 text-[#c8f135] hover:bg-[#c8f135]/12">
+            <Link href={activeCard.href}>{activeCard.label}</Link>
+          </Badge>
+        ) : null}
       </div>
 
-      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/6 bg-[#111112] p-1.5">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.value;
-
-          return (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => setActiveTab(tab.value)}
-              className={cn(
-                "flex h-12 min-w-0 items-center justify-center gap-2 rounded-xl px-2 text-sm font-semibold transition-colors",
-                isActive ? "bg-[#c8f135] text-[#0e0e0f] shadow-[0_0_16px_rgba(200,241,53,0.18)]" : "text-white/40 hover:bg-white/5 hover:text-white/75",
-              )}
-            >
-              <Icon className="size-4 shrink-0" />
-              <span className="truncate hidden lg:block">{tab.label}</span>
-            </button>
-          );
-        })}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4">
+        {navigationCards.map((card, index) => (
+          <HomeNavCard key={card.href} {...card} className={index === 0 ? "lg:col-span-2" : undefined} />
+        ))}
       </div>
 
-      {isLoading ? (
-        <LoadingCards />
-      ) : activeTab === "exercises" ? (
-        <div className="space-y-4">
-          <SearchInput value={exerciseSearch} onChange={setExerciseSearch} placeholder="Search exercises..." />
-          {filteredExercises.length ? (
-            <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
-              {filteredExercises.map((exercise) => (
-                <ExerciseProgressCard key={exercise.id} exercise={exercise} progress={exerciseProgress[exercise.id]} />
-              ))}
-            </div>
-          ) : (
-            <EmptyChartMessage message="No exercises match your search." />
-          )}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold tracking-tight text-[#f0f0ee]">Key stats</h2>
+          <Link href="/progress" className="text-xs font-medium text-white/35 transition-colors hover:text-[#c8f135]">
+            View Progress
+          </Link>
         </div>
-      ) : activeTab === "routines" ? (
-        <div className="space-y-4">
-          <SearchInput value={routineSearch} onChange={setRoutineSearch} placeholder="Search routines..." />
-          {filteredRoutines.length ? (
-            <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
-              {filteredRoutines.map((routine) => (
-                <RoutineProgressCard key={routine.id} routine={routine} progress={routineProgress[routine.id]} />
-              ))}
-            </div>
-          ) : (
-            <EmptyChartMessage message="No routines match your search." />
-          )}
-        </div>
-      ) : (
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-4">
-          <Card className="rounded-2xl border-white/6 bg-[#1a1a1b]">
-            <CardHeader>
-              <CardTitle className="text-white">Muscle group volume</CardTitle>
-              <CardDescription className="text-white/40">Working volume by primary muscle group</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DonutChart data={muscleGroupBreakdown} labelKey="muscleGroup" />
-            </CardContent>
-          </Card>
 
-          <Card className="rounded-2xl border-white/6 bg-[#1a1a1b]">
-            <CardHeader>
-              <CardTitle className="text-white">Breakdown</CardTitle>
-              <CardDescription className="text-white/40">Where your completed set volume is going</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {muscleGroupBreakdown.length === 0 ? (
-                <p className="text-sm text-white/40">Complete a few workouts to see progress charts.</p>
-              ) : (
-                muscleGroupBreakdown.map((item, index) => (
-                  <div key={item.muscleGroup ?? index} className="flex items-center justify-between gap-3 rounded-2xl border border-white/7 bg-white/[0.03] p-3 text-sm">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: chartColors[index % chartColors.length] }} />
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-[#f0f0ee]">{formatEnum(item.muscleGroup)}</p>
-                        <p className="text-xs text-white/35">{formatNumber(item.setCount)} sets</p>
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="font-semibold text-[#f0f0ee]">{formatNumber(item.volume)}</p>
-                      <Badge className="rounded-full border-[#c8f135]/15 bg-[#c8f135]/10 text-[#c8f135] hover:bg-[#c8f135]/10">{item.percentage}%</Badge>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        {isLoading ? (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-28 rounded-2xl bg-white/10" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+            <StatCard label="Routines" value={stats.routines} detail="Templates ready" icon={ListChecks} imageSrc="/assets/cards/routine.png" />
+            <StatCard label="Exercises" value={stats.exercises} detail="Library movements" icon={Library} imageSrc="/assets/cards/exercises.png" />
+            <StatCard label="Workouts" value={stats.workouts} detail="Sessions tracked" icon={History} imageSrc="/assets/cards/home-workout-history.png" />
+            <StatCard label="Latest" value={formatDate(stats.latestWorkout?.date)} detail={stats.latestWorkout?.routine?.name ?? stats.latestWorkout?.name ?? "Workout history"} icon={CalendarDays} imageSrc="/assets/cards/progress-card.png" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

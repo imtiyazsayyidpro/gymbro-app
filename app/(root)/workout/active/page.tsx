@@ -1,9 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, History, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, History, MoreVertical, Pencil, Play, Plus, Trash2 } from "lucide-react";
 import { AlertDialog, DropdownMenu } from "radix-ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -249,7 +250,7 @@ function NoActiveWorkout({
       </div>
 
       {isLoadingRoutines ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-4">
+        <div className="grid gap-3 lg:grid-cols-3 lg:gap-4">
           {Array.from({ length: 6 }).map((_, index) => (
             <Card key={index} className="rounded-2xl border-white/6 bg-[#1a1a1b]">
               <CardContent className="space-y-5 p-4">
@@ -274,8 +275,31 @@ function NoActiveWorkout({
             const isStarting = startingRoutineId === routine.id;
 
             return (
-              <Card key={routine.id} className="rounded-2xl border-white/6 bg-[#1a1a1b] transition-colors hover:border-white/10">
-                <CardContent className="flex min-h-44 flex-col p-4">
+              <Card
+                key={routine.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  if (startingRoutineId == null) onStartRoutine(routine.id);
+                }}
+                onKeyDown={(event) => {
+                  if ((event.key === "Enter" || event.key === " ") && startingRoutineId == null) {
+                    event.preventDefault();
+                    onStartRoutine(routine.id);
+                  }
+                }}
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border-[#c8f135]/12 bg-[#1a1a1b] py-0 transition-colors hover:border-[#c8f135]/30 hover:bg-[#c8f135]/[0.03]"
+              >
+                <Image
+                  src="/assets/cards/routine.png"
+                  alt=""
+                  width={190}
+                  height={190}
+                  className="pointer-events-none absolute -right-16 -bottom-16 size-52 object-contain opacity-[0.08] transition-opacity group-hover:opacity-[0.14]"
+                />
+                <div className="pointer-events-none absolute -right-10 top-1/2 h-36 w-36 -translate-y-1/2 rounded-full bg-[#c8f135] opacity-[0.08] blur-2xl" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[radial-gradient(circle_at_left,rgba(200,241,53,0.08)_0%,transparent_62%)]" />
+                <CardContent className="relative z-10 flex min-h-40 flex-col justify-between p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
                       <h2 className="truncate text-[15px] font-semibold text-[#f0f0ee]">{routine.name}</h2>
@@ -288,11 +312,16 @@ function NoActiveWorkout({
                     <Separator className="bg-white/5" />
                     <Button
                       type="button"
+                      size="icon"
                       disabled={startingRoutineId != null}
-                      onClick={() => onStartRoutine(routine.id)}
-                      className="h-11 w-full rounded-xl bg-[#c8f135] font-[family-name:var(--font-display)] text-white tracking-widest text-[#0e0e0f] shadow-[0_0_16px_rgba(200,241,53,0.18)] hover:bg-[#d4f54d]"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onStartRoutine(routine.id);
+                      }}
+                      className="size-10 rounded-full bg-[#c8f135] text-[#0e0e0f] shadow-[0_0_16px_rgba(200,241,53,0.18)] hover:bg-[#d4f54d]"
+                      aria-label={`Start ${routine.name}`}
                     >
-                      {isStarting ? "STARTING..." : "START"}
+                      {isStarting ? <span className="size-3 animate-pulse rounded-full bg-[#0e0e0f]" /> : <Play className="size-4 fill-current" />}
                     </Button>
                   </div>
                 </CardContent>
@@ -808,7 +837,14 @@ function ExerciseHeader({ exercise, onOpenHistory }: { exercise: WorkoutExercise
     <div className="space-y-3 lg:mt-5">
       <div className="flex items-start justify-between gap-3">
         <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-wide text-white">{exercise.exercise.name}</h2>
-        <Button type="button" variant="ghost" size="icon" onClick={onOpenHistory} className="size-10 shrink-0 rounded-full text-white/35 hover:bg-white/5 hover:text-[#c8f135]" aria-label={`View ${exercise.exercise.name} history`}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onOpenHistory}
+          className="size-10 shrink-0 rounded-full text-white/35 hover:bg-white/5 hover:text-[#c8f135]"
+          aria-label={`View ${exercise.exercise.name} history`}
+        >
           <History className="size-5" />
         </Button>
       </div>
@@ -1050,17 +1086,7 @@ function EditSetDialog({
   );
 }
 
-function ExerciseHistoryDialog({
-  exercise,
-  session,
-  isLoading,
-  onClose,
-}: {
-  exercise: WorkoutExercise | null;
-  session: ExerciseLastSession | null;
-  isLoading: boolean;
-  onClose: () => void;
-}) {
+function ExerciseHistoryDialog({ exercise, session, isLoading, onClose }: { exercise: WorkoutExercise | null; session: ExerciseLastSession | null; isLoading: boolean; onClose: () => void }) {
   const sets = useMemo(() => sortedSets(session?.sets ?? []), [session]);
 
   return (

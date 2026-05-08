@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Dumbbell, Home, Library, ListChecks, LogOut } from "lucide-react";
+import { Activity, History, Home, Library, LogOut } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -14,14 +14,14 @@ import { StorageService } from "@/src/services/StorageService";
 
 const navItems = [
   { label: "Home", href: "/", icon: Home },
-  { label: "Routines", href: "/routines", icon: ListChecks },
-  { label: "Workout", href: "/workout/active", icon: Dumbbell },
+  { label: "Progress", href: "/progress", icon: Activity },
+  { label: "History", href: "/workout", icon: History },
   { label: "Exercises", href: "/exercises", icon: Library },
 ];
 
 function isNavItemActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
-  if (href === "/workout/active") return pathname.startsWith("/workout");
+  if (href === "/workout") return pathname.startsWith("/workout");
   return pathname.startsWith(href);
 }
 
