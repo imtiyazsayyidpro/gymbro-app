@@ -2,15 +2,15 @@
 
 import { CSSProperties, FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { AddCard } from "@/src/components/gymbro/AddCard";
 import { ConfirmationModal } from "@/src/components/gymbro/ConfirmationModal";
 import { RoutineCard } from "@/src/components/gymbro/RoutineCard";
 import { RoutineService } from "@/src/services/RoutineService";
@@ -122,15 +122,9 @@ export default function RoutinesPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-[#f0f0ee]">Routines</h1>
-          <p className="text-sm text-white/40">Create reusable templates for routine-based workouts</p>
-        </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="h-9 rounded-xl bg-[#c8f135] px-4 text-sm font-semibold text-[#0e0e0f] hover:bg-[#d4f54d]">
-          <Plus className="size-4" />
-          New
-        </Button>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#f0f0ee]">Routines</h1>
+        <p className="text-sm text-white/40">Create reusable templates for routine-based workouts</p>
       </div>
 
       {isLoading ? (
@@ -150,19 +144,12 @@ export default function RoutinesPage() {
           ))}
         </div>
       ) : routines.length === 0 ? (
-        <Card className="rounded-2xl border-white/6 bg-[#1a1a1b]">
-          <CardHeader>
-            <CardTitle className="text-white">No routines found</CardTitle>
-            <CardDescription>Create your first routine from your exercise library.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="h-11 w-full rounded-xl bg-[#c8f135] font-semibold text-[#0e0e0f] hover:bg-[#d4f54d]" onClick={() => setIsDialogOpen(true)}>
-              New Routine
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-2 gap-3 pb-20 lg:grid-cols-3 lg:gap-4">
+          <AddCard title="New Routine" description="Plan a workout" onClick={() => setIsDialogOpen(true)} />
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 pb-20 lg:grid-cols-3 lg:gap-4">
+          <AddCard title="New Routine" description="Plan a workout" onClick={() => setIsDialogOpen(true)} />
           {routines.map((routine) => (
             <RoutineCard
               key={routine.id}

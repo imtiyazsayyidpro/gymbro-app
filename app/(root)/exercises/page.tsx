@@ -1,11 +1,11 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AddCard } from "@/src/components/gymbro/AddCard";
 import { ConfirmationModal } from "@/src/components/gymbro/ConfirmationModal";
 import { ExerciseCard } from "@/src/components/gymbro/ExerciseCard";
 import { ExerciseFormDialog, ExerciseFormState } from "@/src/components/gymbro/ExerciseFormDialog";
@@ -236,15 +236,9 @@ export default function ExercisesPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-[#f0f0ee]">Exercises</h1>
-          <p className="text-sm text-white/40">Build your library before creating routines</p>
-        </div>
-        <Button onClick={openCreateDialog} className="h-9 rounded-xl bg-[#c8f135] px-4 text-sm font-semibold text-[#0e0e0f] hover:bg-[#d4f54d]">
-          <Plus className="size-4" />
-          New
-        </Button>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#f0f0ee]">Exercises</h1>
+        <p className="text-sm text-white/40">Build your library before creating routines</p>
       </div>
 
       <SearchInput value={search} onChange={setSearch} placeholder="Search exercises..." />
@@ -267,27 +261,26 @@ export default function ExercisesPage() {
             </Card>
           ))}
         </div>
-      ) : exercises.length === 0 ? (
+      ) : exercises.length === 0 && debouncedSearch ? (
         <Card className="rounded-2xl border-white/6 bg-[#1a1a1b]">
           <CardHeader>
             <CardTitle className="text-white">No exercises found</CardTitle>
-            <CardDescription>{debouncedSearch ? "Try a different search term." : "Add your first exercise to start building routines."}</CardDescription>
+            <CardDescription>Try a different search term.</CardDescription>
           </CardHeader>
           <CardContent>
-            {debouncedSearch ? (
-              <Button onClick={() => setSearch("")} variant="ghost" className="h-11 w-full rounded-xl text-white/55 hover:bg-white/5 hover:text-white/80">
-                Clear Search
-              </Button>
-            ) : (
-              <Button onClick={openCreateDialog} className="h-11 w-full rounded-xl bg-[#c8f135] font-semibold text-[#0e0e0f] hover:bg-[#d4f54d]">
-                New Exercise
-              </Button>
-            )}
+            <Button onClick={() => setSearch("")} variant="ghost" className="h-11 w-full rounded-xl text-white/55 hover:bg-white/5 hover:text-white/80">
+              Clear Search
+            </Button>
           </CardContent>
         </Card>
+      ) : exercises.length === 0 ? (
+        <div className="grid grid-cols-2 gap-3 pb-20 lg:grid-cols-3 lg:gap-4">
+          <AddCard title="New Exercise" description="Grow your library" onClick={openCreateDialog} />
+        </div>
       ) : (
         <div className="space-y-5 pb-20">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-4">
+            <AddCard title="New Exercise" description="Grow your library" onClick={openCreateDialog} />
             {exercises.map((exercise) => (
               <ExerciseCard
                 key={exercise.id}
