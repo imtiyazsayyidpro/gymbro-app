@@ -1,52 +1,53 @@
-const CACHE_VERSION = "gymbro-v3";
+const CACHE_VERSION = "gymbro-v4";
 const CACHE_NAME = `gymbro-cache-${CACHE_VERSION}`;
 
-const APP_SHELL_FILES = ["/", "/manifest.webmanifest"];
+const STATIC_ASSET_PATHS = ["/manifest.webmanifest", "/favicon.ico"];
 
-const API_HOSTS = ["gymbro-api.imtiyazsayyid.in", "localhost", "127.0.0.1"];
+const API_HOSTS = new Set(["gymbro-api.imtiyazsayyid.in", "localhost", "127.0.0.1"]);
+
+function isApiRequest(url) {
+  return API_HOSTS.has(url.hostname) && url.pathname.startsWith("/api/");
+}
+
+function isStaticAsset(url) {
+  return url.origin === self.location.origin && (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/favicon.ico");
+}
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL_FILES)));
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSET_PATHS)));
 
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("gymbro-cache-") && key !== CACHE_NAME).map((key) => caches.delete(key)))));
-
-  self.clients.claim();
+  event.waitUntil(Promise.all([caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("gymbro-cache-") && key !== CACHE_NAME).map((key) => caches.delete(key)))), self.clients.claim()]));
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-
   const url = new URL(event.request.url);
 
-  // Never cache backend API requests.
-  // These must always hit the network because they contain live user data.
-  if (API_HOSTS.includes(url.hostname) && url.pathname.startsWith("/api/")) {
+  if (isApiRequest(url)) {
+    event.respondWith(
+      fetch(
+        new Request(event.request, {
+          cache: "no-store",
+        }),
+      ),
+    );
+
     return;
   }
 
-  // Never cache any cross-origin requests.
-  // This prevents accidental caching of APIs, CDNs, auth calls, etc.
-  if (url.origin !== self.location.origin) {
+  if (event.request.method !== "GET") {
     return;
   }
 
-  const isNavigationRequest = event.request.mode === "navigate";
-
-  // For page navigations:
-  // Try network first. If offline, fall back to cached app shell.
-  if (isNavigationRequest) {
-    event.respondWith(fetch(event.request).catch(() => caches.match("/") || Response.error()));
+  if (event.request.mode === "navigate") {
+    event.respondWith(fetch(event.request));
     return;
   }
 
-  const isStaticAsset = url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/favicon.ico";
-
-  // Only cache safe static assets.
-  if (!isStaticAsset) {
+  if (!isStaticAsset(url)) {
     return;
   }
 
