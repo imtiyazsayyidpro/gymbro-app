@@ -353,7 +353,7 @@ export default function ActiveWorkoutPage() {
   const [lastSetSummary, setLastSetSummary] = useState<LastSetSummary>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [flashingSetId, setFlashingSetId] = useState<number | null>(null);
-  const flashTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const flashTimerRef = useRef<number | null>(null);
   const [historyExercise, setHistoryExercise] = useState<WorkoutExercise | null>(null);
   const [lastExerciseSession, setLastExerciseSession] = useState<ExerciseLastSession | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
