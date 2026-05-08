@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, Dumbbell, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { CartesianGrid, LabelList, Line, LineChart, Pie, PieChart, XAxis, YAxis } from "recharts";
@@ -227,7 +227,7 @@ function MiniLineChart({
           <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
           <ChartTooltip cursor={false} content={<ChartTooltipContent className="border-white/10 bg-[#111112] text-[#f0f0ee]" />} />
           {series.map((line) => (
-            <Line key={line.key} type="monotone" dataKey={line.key} stroke={`var(--color-${line.key})`} strokeWidth={2.5} dot={false} />
+            <Line key={line.key} type="monotone" dataKey={line.key} stroke={`var(--color-${line.key})`} strokeWidth={2.5} dot={false} animationDuration={1200} animationEasing="ease-out" />
           ))}
         </LineChart>
       </ChartContainer>
@@ -271,7 +271,7 @@ function DonutChart({ data, labelKey }: { data: BreakdownItem[]; labelKey: "setT
       <ChartContainer config={chartConfig} className="mx-auto aspect-square h-52 text-white/40">
         <PieChart>
           <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel className="border-white/10 bg-[#111112] text-[#f0f0ee]" />} />
-          <Pie data={chartData} dataKey="volume" nameKey="label" innerRadius={54} outerRadius={82} stroke="#1a1a1b" strokeWidth={3}>
+          <Pie data={chartData} dataKey="volume" nameKey="label" innerRadius={54} outerRadius={82} stroke="#1a1a1b" strokeWidth={3} animationBegin={0} animationDuration={900} animationEasing="ease-out">
             <LabelList dataKey="percentage" className="fill-[#0e0e0f] text-xs font-semibold" stroke="none" formatter={(value) => `${Number(value ?? 0)}%`} />
           </Pie>
         </PieChart>
@@ -505,12 +505,14 @@ export default function HomePage() {
       {isLoading ? (
         <LoadingCards />
       ) : activeTab === "exercises" ? (
-        <div className="space-y-4">
+        <div key="exercises" className="stagger-item space-y-4" style={{ "--stagger-index": 0 } as React.CSSProperties}>
           <SearchInput value={exerciseSearch} onChange={setExerciseSearch} placeholder="Search exercises..." />
           {filteredExercises.length ? (
             <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
-              {filteredExercises.map((exercise) => (
-                <ExerciseProgressCard key={exercise.id} exercise={exercise} progress={exerciseProgress[exercise.id]} />
+              {filteredExercises.map((exercise, index) => (
+                <div key={exercise.id} className="stagger-item" style={{ "--stagger-index": index + 1 } as React.CSSProperties}>
+                  <ExerciseProgressCard exercise={exercise} progress={exerciseProgress[exercise.id]} />
+                </div>
               ))}
             </div>
           ) : (
@@ -518,12 +520,14 @@ export default function HomePage() {
           )}
         </div>
       ) : activeTab === "routines" ? (
-        <div className="space-y-4">
+        <div key="routines" className="stagger-item space-y-4" style={{ "--stagger-index": 0 } as React.CSSProperties}>
           <SearchInput value={routineSearch} onChange={setRoutineSearch} placeholder="Search routines..." />
           {filteredRoutines.length ? (
             <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
-              {filteredRoutines.map((routine) => (
-                <RoutineProgressCard key={routine.id} routine={routine} progress={routineProgress[routine.id]} />
+              {filteredRoutines.map((routine, index) => (
+                <div key={routine.id} className="stagger-item" style={{ "--stagger-index": index + 1 } as React.CSSProperties}>
+                  <RoutineProgressCard routine={routine} progress={routineProgress[routine.id]} />
+                </div>
               ))}
             </div>
           ) : (
@@ -531,7 +535,7 @@ export default function HomePage() {
           )}
         </div>
       ) : (
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-4">
+        <div key="muscles" className="stagger-item grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-4" style={{ "--stagger-index": 0 } as React.CSSProperties}>
           <Card className="rounded-2xl border-white/6 bg-[#1a1a1b]">
             <CardHeader>
               <CardTitle className="text-white">Muscle group volume</CardTitle>
