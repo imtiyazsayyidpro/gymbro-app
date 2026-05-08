@@ -219,7 +219,7 @@ function MiniLineChart({
     <div className="space-y-3">
       <ChartContainer
         config={chartConfig}
-        className={cn("w-full rounded-2xl bg-[#111112] p-2 text-white/40 [&_.recharts-cartesian-axis-tick_text]:fill-white/30 [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-white/8", heightClassName)}
+        className={cn("w-full overflow-hidden rounded-2xl bg-[#111112] p-2 text-white/40 [&_.recharts-cartesian-axis-tick_text]:fill-white/30 [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-white/8", heightClassName)}
       >
         <LineChart data={chartData} margin={{ top: 12, right: 12, left: 10, bottom: 0 }}>
           <CartesianGrid vertical={false} />
@@ -510,7 +510,7 @@ export default function HomePage() {
           {filteredExercises.length ? (
             <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
               {filteredExercises.map((exercise, index) => (
-                <div key={exercise.id} className="stagger-item" style={{ "--stagger-index": index + 1 } as React.CSSProperties}>
+                <div key={exercise.id} className="stagger-item min-w-0" style={{ "--stagger-index": index + 1 } as React.CSSProperties}>
                   <ExerciseProgressCard exercise={exercise} progress={exerciseProgress[exercise.id]} />
                 </div>
               ))}
@@ -525,7 +525,7 @@ export default function HomePage() {
           {filteredRoutines.length ? (
             <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
               {filteredRoutines.map((routine, index) => (
-                <div key={routine.id} className="stagger-item" style={{ "--stagger-index": index + 1 } as React.CSSProperties}>
+                <div key={routine.id} className="stagger-item min-w-0" style={{ "--stagger-index": index + 1 } as React.CSSProperties}>
                   <RoutineProgressCard routine={routine} progress={routineProgress[routine.id]} />
                 </div>
               ))}

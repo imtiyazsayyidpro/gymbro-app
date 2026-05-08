@@ -165,7 +165,7 @@ export default function AppShellLayout({
     <AuthGuard>
       <div className="min-h-dvh bg-[#0e0e0f]">
         <DesktopSidebar onLogoutClick={() => setIsLogoutOpen(true)} />
-        <main className="min-h-dvh px-4 pt-5 pb-24 sm:px-6 md:ml-[224px] md:px-8 md:pb-0 lg:px-10">
+        <main className="min-h-dvh overflow-x-hidden px-4 pt-5 pb-24 sm:px-6 md:ml-[224px] md:px-8 md:pb-0 lg:px-10">
           <ViewTransition enter="page-fade" exit="page-fade">
             <div className="mx-auto w-full">{children}</div>
           </ViewTransition>
