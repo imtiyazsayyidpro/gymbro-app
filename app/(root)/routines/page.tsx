@@ -128,7 +128,7 @@ export default function RoutinesPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-4">
+        <div className="grid gap-3 lg:grid-cols-3 lg:gap-4">
           {Array.from({ length: 6 }).map((_, index) => (
             <Card key={index} className="rounded-2xl border-white/6 bg-[#1a1a1b]">
               <CardContent className="space-y-5 p-4">
@@ -144,11 +144,11 @@ export default function RoutinesPage() {
           ))}
         </div>
       ) : routines.length === 0 ? (
-        <div className="grid grid-cols-2 gap-3 pb-20 lg:grid-cols-3 lg:gap-4">
+        <div className="grid gap-3 pb-20 lg:grid-cols-3 lg:gap-4">
           <AddCard title="New Routine" description="Plan a workout" onClick={() => setIsDialogOpen(true)} />
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 pb-20 lg:grid-cols-3 lg:gap-4">
+        <div className="grid gap-3 pb-20 lg:grid-cols-3 lg:gap-4">
           <AddCard title="New Routine" description="Plan a workout" onClick={() => setIsDialogOpen(true)} />
           {routines.map((routine) => (
             <RoutineCard
