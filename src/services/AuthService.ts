@@ -6,6 +6,10 @@ export const AuthService = {
     return Api.post("/v1/auth/login", payload);
   },
 
+  register(payload: { name: string; email: string; mobile: string; password: string }) {
+    return Api.post("/v1/auth/register", payload);
+  },
+
   verifyOtp(payload: { userId: number; code: string }) {
     return Api.post("/v1/auth/verify-otp", payload);
   },

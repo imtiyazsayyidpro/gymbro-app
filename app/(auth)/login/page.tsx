@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
@@ -135,6 +136,13 @@ export default function LoginPage() {
       <VoltButton type="submit" loading={isSubmitting} className="mt-1">
         {isSubmitting ? "SENDING..." : "CONTINUE"}
       </VoltButton>
+
+      <p className="pt-4 text-center text-xs text-white/30">
+        New to the crew?{" "}
+        <Link className="font-semibold text-volt hover:text-volt/80" href="/register">
+          Claim your spot
+        </Link>
+      </p>
     </form>
   );
 

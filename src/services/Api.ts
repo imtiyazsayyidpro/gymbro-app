@@ -21,7 +21,7 @@ Api.interceptors.response.use(
     const status = error.response?.status;
 
     if (typeof window !== "undefined") {
-      const isAuthPage = window.location.pathname === "/login" || window.location.pathname === "/verify-otp";
+      const isAuthPage = window.location.pathname === "/login" || window.location.pathname === "/register" || window.location.pathname === "/verify-otp";
 
       if ((status === 401 || status === 403) && !isAuthPage) {
         StorageService.removeAccessToken();

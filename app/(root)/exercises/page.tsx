@@ -116,29 +116,32 @@ export default function ExercisesPage() {
   const [form, setForm] = useState<ExerciseFormState>(emptyForm);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const fetchExercises = useCallback(async (targetPage = 1) => {
-    if (targetPage === 1) {
-      setIsLoading(true);
-    } else {
-      setIsFetchingMore(true);
-    }
+  const fetchExercises = useCallback(
+    async (targetPage = 1) => {
+      if (targetPage === 1) {
+        setIsLoading(true);
+      } else {
+        setIsFetchingMore(true);
+      }
 
-    try {
-      const response = await ExerciseService.getAllExercises({
-        page: targetPage,
-        limit: pagination.limit,
-        search: debouncedSearch || undefined,
-      });
-      const nextExercises = parseExercises(response);
-      setExercises((current) => (targetPage === 1 ? nextExercises : [...current, ...nextExercises]));
-      setPagination(parsePagination(response));
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setIsLoading(false);
-      setIsFetchingMore(false);
-    }
-  }, [debouncedSearch, pagination.limit]);
+      try {
+        const response = await ExerciseService.getAllExercises({
+          page: targetPage,
+          limit: pagination.limit,
+          search: debouncedSearch || undefined,
+        });
+        const nextExercises = parseExercises(response);
+        setExercises((current) => (targetPage === 1 ? nextExercises : [...current, ...nextExercises]));
+        setPagination(parsePagination(response));
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      } finally {
+        setIsLoading(false);
+        setIsFetchingMore(false);
+      }
+    },
+    [debouncedSearch, pagination.limit],
+  );
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -267,10 +270,8 @@ export default function ExercisesPage() {
       ) : exercises.length === 0 ? (
         <Card className="rounded-2xl border-white/6 bg-[#1a1a1b]">
           <CardHeader>
-            <CardTitle className="text-base text-[#f0f0ee]">No exercises found</CardTitle>
-            <CardDescription>
-              {debouncedSearch ? "Try a different search term." : "Add your first exercise to start building routines."}
-            </CardDescription>
+            <CardTitle className="text-white">No exercises found</CardTitle>
+            <CardDescription>{debouncedSearch ? "Try a different search term." : "Add your first exercise to start building routines."}</CardDescription>
           </CardHeader>
           <CardContent>
             {debouncedSearch ? (
@@ -322,9 +323,7 @@ export default function ExercisesPage() {
 
           <div ref={loadMoreRef} className="h-1" />
 
-          {pagination.total > 0 && pagination.page >= pagination.totalPages ? (
-            <p className="text-center text-xs text-white/30">All exercises loaded</p>
-          ) : null}
+          {pagination.total > 0 && pagination.page >= pagination.totalPages ? <p className="text-center text-xs text-white/30">All exercises loaded</p> : null}
         </div>
       )}
 

@@ -6,13 +6,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,8 +24,7 @@ type Routine = {
   };
 };
 
-const fieldClassName =
-  "h-11 rounded-xl border-white/7 bg-[#1a1a1b] !text-[#f0f0ee] placeholder:!text-white/25 caret-[#c8f135] focus:border-[#c8f135]/40 focus:ring-0 focus-visible:ring-0";
+const fieldClassName = "h-11 rounded-xl border-white/7 bg-[#1a1a1b] !text-[#f0f0ee] placeholder:!text-white/25 caret-[#c8f135] focus:border-[#c8f135]/40 focus:ring-0 focus-visible:ring-0";
 
 const labelClassName = "text-[11px] font-semibold tracking-widest text-white/40 uppercase";
 
@@ -134,10 +127,7 @@ export default function RoutinesPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-[#f0f0ee]">Routines</h1>
           <p className="text-sm text-white/40">Create reusable templates for routine-based workouts</p>
         </div>
-        <Button
-          onClick={() => setIsDialogOpen(true)}
-          className="h-9 rounded-xl bg-[#c8f135] px-4 text-sm font-semibold text-[#0e0e0f] hover:bg-[#d4f54d]"
-        >
+        <Button onClick={() => setIsDialogOpen(true)} className="h-9 rounded-xl bg-[#c8f135] px-4 text-sm font-semibold text-[#0e0e0f] hover:bg-[#d4f54d]">
           <Plus className="size-4" />
           New
         </Button>
@@ -162,14 +152,11 @@ export default function RoutinesPage() {
       ) : routines.length === 0 ? (
         <Card className="rounded-2xl border-white/6 bg-[#1a1a1b]">
           <CardHeader>
-            <CardTitle className="text-base text-[#f0f0ee]">No routines found</CardTitle>
+            <CardTitle className="text-white">No routines found</CardTitle>
             <CardDescription>Create your first routine from your exercise library.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button
-              className="h-11 w-full rounded-xl bg-[#c8f135] font-semibold text-[#0e0e0f] hover:bg-[#d4f54d]"
-              onClick={() => setIsDialogOpen(true)}
-            >
+            <Button className="h-11 w-full rounded-xl bg-[#c8f135] font-semibold text-[#0e0e0f] hover:bg-[#d4f54d]" onClick={() => setIsDialogOpen(true)}>
               New Routine
             </Button>
           </CardContent>
@@ -192,26 +179,15 @@ export default function RoutinesPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto border-white/10 bg-[#111112] text-[#f0f0ee] sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-[family-name:var(--font-display)] text-2xl tracking-wider">
-              NEW ROUTINE
-            </DialogTitle>
-            <DialogDescription className="text-white/40">
-              Create the template first, then add exercises
-            </DialogDescription>
+            <DialogTitle className="font-[family-name:var(--font-display)] text-2xl tracking-wider">NEW ROUTINE</DialogTitle>
+            <DialogDescription className="text-white/40">Create the template first, then add exercises</DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={handleCreateRoutine}>
             <div className="space-y-2">
               <Label htmlFor="name" className={labelClassName}>
                 Name
               </Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                className={fieldClassName}
-                style={typedTextStyle}
-                required
-              />
+              <Input id="name" value={name} onChange={(event) => setName(event.target.value)} className={fieldClassName} style={typedTextStyle} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="description" className={labelClassName}>
@@ -226,13 +202,7 @@ export default function RoutinesPage() {
               />
             </div>
             <div className="-mx-4 -mb-4 mt-6 flex items-center justify-end gap-3 border-t border-white/7 bg-[#181819] px-4 py-4 sm:-mx-6 sm:-mb-6 sm:px-6">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setIsDialogOpen(false)}
-                disabled={isSaving}
-                className="rounded-xl text-white/50 hover:bg-white/5 hover:text-white/80"
-              >
+              <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} disabled={isSaving} className="rounded-xl text-white/50 hover:bg-white/5 hover:text-white/80">
                 Cancel
               </Button>
               <Button
