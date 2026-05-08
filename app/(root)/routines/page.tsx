@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, FormEvent, useEffect, useState } from "react";
+import React, { CSSProperties, FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -145,20 +145,25 @@ export default function RoutinesPage() {
         </div>
       ) : routines.length === 0 ? (
         <div className="grid gap-3 pb-20 lg:grid-cols-3 lg:gap-4">
-          <AddCard title="New Routine" description="Plan a workout" onClick={() => setIsDialogOpen(true)} />
+          <div className="stagger-item" style={{ "--stagger-index": 0 } as React.CSSProperties}>
+            <AddCard title="New Routine" description="Plan a workout" onClick={() => setIsDialogOpen(true)} />
+          </div>
         </div>
       ) : (
         <div className="grid gap-3 pb-20 lg:grid-cols-3 lg:gap-4">
-          <AddCard title="New Routine" description="Plan a workout" onClick={() => setIsDialogOpen(true)} />
-          {routines.map((routine) => (
-            <RoutineCard
-              key={routine.id}
-              name={routine.name}
-              description={routine.description}
-              exerciseCount={routine._count?.exercises ?? 0}
-              onOpen={() => router.push(`/routines/${routine.id}`)}
-              onArchive={() => setArchivingRoutine(routine)}
-            />
+          <div className="stagger-item" style={{ "--stagger-index": 0 } as React.CSSProperties}>
+            <AddCard title="New Routine" description="Plan a workout" onClick={() => setIsDialogOpen(true)} />
+          </div>
+          {routines.map((routine, index) => (
+            <div key={routine.id} className="stagger-item" style={{ "--stagger-index": index + 1 } as React.CSSProperties}>
+              <RoutineCard
+                name={routine.name}
+                description={routine.description}
+                exerciseCount={routine._count?.exercises ?? 0}
+                onOpen={() => router.push(`/routines/${routine.id}`)}
+                onArchive={() => setArchivingRoutine(routine)}
+              />
+            </div>
           ))}
         </div>
       )}

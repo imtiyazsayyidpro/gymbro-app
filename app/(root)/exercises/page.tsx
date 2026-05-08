@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import React, { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -275,22 +275,27 @@ export default function ExercisesPage() {
         </Card>
       ) : exercises.length === 0 ? (
         <div className="grid grid-cols-2 gap-3 pb-20 lg:grid-cols-3 lg:gap-4">
-          <AddCard title="New Exercise" description="Grow your library" onClick={openCreateDialog} />
+          <div className="stagger-item" style={{ "--stagger-index": 0 } as React.CSSProperties}>
+            <AddCard title="New Exercise" description="Grow your library" onClick={openCreateDialog} />
+          </div>
         </div>
       ) : (
         <div className="space-y-5 pb-20">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-4">
-            <AddCard title="New Exercise" description="Grow your library" onClick={openCreateDialog} />
-            {exercises.map((exercise) => (
-              <ExerciseCard
-                key={exercise.id}
-                name={exercise.name}
-                primaryMuscleGroup={exercise.primaryMuscleGroup}
-                equipment={exercise.equipment}
-                exerciseType={exercise.exerciseType}
-                onEdit={() => openEditDialog(exercise)}
-                onArchive={() => openArchiveDialog(exercise)}
-              />
+            <div className="stagger-item" style={{ "--stagger-index": 0 } as React.CSSProperties}>
+              <AddCard title="New Exercise" description="Grow your library" onClick={openCreateDialog} />
+            </div>
+            {exercises.map((exercise, index) => (
+              <div key={exercise.id} className="stagger-item" style={{ "--stagger-index": index + 1 } as React.CSSProperties}>
+                <ExerciseCard
+                  name={exercise.name}
+                  primaryMuscleGroup={exercise.primaryMuscleGroup}
+                  equipment={exercise.equipment}
+                  exerciseType={exercise.exerciseType}
+                  onEdit={() => openEditDialog(exercise)}
+                  onArchive={() => openArchiveDialog(exercise)}
+                />
+              </div>
             ))}
           </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
+import { ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -90,29 +91,59 @@ function DesktopSidebar({ onLogoutClick }: { onLogoutClick: () => void }) {
 
 function MobileBottomNav({ onLogoutClick }: { onLogoutClick: () => void }) {
   const pathname = usePathname();
+  const activeNavIndex = navItems.findIndex((item) => isNavItemActive(pathname, item.href));
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/6 bg-[#111112]/95 backdrop-blur-md md:hidden">
-      <div className="grid h-16 grid-cols-5 px-2">
+    <div className="fixed inset-x-3 bottom-3 z-50 md:hidden" style={{ viewTransitionName: "bottom-nav" } as React.CSSProperties}>
+      <nav className="relative flex h-[62px] items-stretch overflow-hidden rounded-2xl border border-white/8 bg-[#111112]/96 shadow-[0_8px_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl">
+
+        {/* Sliding volt pill */}
+        {activeNavIndex >= 0 && (
+          <div
+            className="pointer-events-none absolute inset-y-1.5 rounded-xl bg-[#c8f135]/8 shadow-[0_0_16px_rgba(200,241,53,0.12)]"
+            style={{
+              width: `${100 / 5}%`,
+              transform: `translateX(${activeNavIndex * 100}%)`,
+              transition: "transform 380ms cubic-bezier(0.25, 1.4, 0.5, 1)",
+            }}
+          />
+        )}
+
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = isNavItemActive(pathname, item.href);
 
           return (
-            <Link key={item.href} href={item.href} className={cn("flex min-w-0 flex-col items-center justify-center text-[10px] font-medium transition-colors", isActive ? "text-[#c8f135]" : "text-white/30")}>
-              <span className={cn("mb-1 h-0.5 w-6 rounded-full", isActive ? "bg-[#c8f135]" : "bg-transparent")} />
-              <Icon className="size-5" />
-              <span className="mt-1 truncate">{item.label}</span>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "relative z-10 flex flex-1 flex-col items-center justify-center gap-1 transition-colors duration-200",
+                isActive ? "text-[#c8f135]" : "text-white/25 hover:text-white/50",
+              )}
+            >
+              <Icon
+                className={cn(
+                  "size-5 transition-all duration-200",
+                  isActive && "scale-110 drop-shadow-[0_0_8px_rgba(200,241,53,0.5)]",
+                )}
+              />
+              <span className="text-[9px] font-semibold tracking-widest uppercase">{item.label}</span>
             </Link>
           );
         })}
-        <button type="button" onClick={onLogoutClick} className="flex min-w-0 flex-col items-center justify-center text-[10px] font-medium text-white/30 transition-colors hover:text-white/70">
-          <span className="mb-1 h-0.5 w-6 rounded-full bg-transparent" />
+
+        <button
+          type="button"
+          onClick={onLogoutClick}
+          className="relative z-10 flex flex-1 flex-col items-center justify-center gap-1 text-white/20 transition-colors duration-200 hover:text-white/50"
+        >
           <LogOut className="size-5" />
-          <span className="mt-1 truncate">Logout</span>
+          <span className="text-[9px] font-semibold tracking-widest uppercase">Logout</span>
         </button>
-      </div>
-    </nav>
+
+      </nav>
+    </div>
   );
 }
 
@@ -134,8 +165,10 @@ export default function AppShellLayout({
     <AuthGuard>
       <div className="min-h-dvh bg-[#0e0e0f]">
         <DesktopSidebar onLogoutClick={() => setIsLogoutOpen(true)} />
-        <main className="min-h-dvh px-4 pt-5 pb-20 sm:px-6 md:ml-[224px] md:px-8 md:pb-0 lg:px-10">
-          <div className="mx-auto w-full">{children}</div>
+        <main className="min-h-dvh px-4 pt-5 pb-24 sm:px-6 md:ml-[224px] md:px-8 md:pb-0 lg:px-10">
+          <ViewTransition enter="page-fade" exit="page-fade">
+            <div className="mx-auto w-full">{children}</div>
+          </ViewTransition>
         </main>
         <MobileBottomNav onLogoutClick={() => setIsLogoutOpen(true)} />
         <ConfirmationModal

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useTilt } from "./useTilt";
 
 type ExerciseCardProps = {
   name: string;
@@ -33,6 +34,8 @@ export function ExerciseCard({
   onEdit,
   onArchive,
 }: ExerciseCardProps) {
+  const { tiltStyle, glareStyle, onMouseMove, onMouseLeave } = useTilt();
+
   return (
     <Card
       role="button"
@@ -44,11 +47,15 @@ export function ExerciseCard({
           onEdit();
         }
       }}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+      style={tiltStyle}
       className="group relative cursor-pointer overflow-hidden rounded-2xl border border-[#c8f135]/12 bg-[#1a1a1b] py-0 transition-colors hover:border-[#c8f135]/30 hover:bg-[#c8f135]/[0.03]"
     >
       <Image src="/assets/cards/exercises.png" alt="" width={190} height={190} className="pointer-events-none absolute -right-16 top-1/2 size-52 -translate-y-1/2 object-contain opacity-[0.08] transition-opacity group-hover:opacity-[0.14]" />
       <div className="pointer-events-none absolute -right-10 top-1/2 h-36 w-36 -translate-y-1/2 rounded-full bg-[#c8f135] opacity-[0.08] blur-2xl" />
       <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[radial-gradient(circle_at_left,rgba(200,241,53,0.08)_0%,transparent_62%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-20 rounded-[inherit]" style={glareStyle} />
       <CardContent className="relative z-10 flex min-h-36 flex-col justify-between p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 space-y-1.5">

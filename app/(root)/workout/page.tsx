@@ -1,8 +1,8 @@
 "use client";
 
+import React, { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, ChevronRight, Dumbbell, History } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -150,8 +150,10 @@ export default function WorkoutHistoryPage() {
         </Card>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
-          {workouts.map((workout) => (
-            <WorkoutHistoryCard key={workout.id} workout={workout} />
+          {workouts.map((workout, index) => (
+            <div key={workout.id} className="stagger-item" style={{ "--stagger-index": index } as React.CSSProperties}>
+              <WorkoutHistoryCard workout={workout} />
+            </div>
           ))}
         </div>
       )}

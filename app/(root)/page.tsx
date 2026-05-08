@@ -1,14 +1,15 @@
 "use client";
 
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, ArrowRight, CalendarDays, Dumbbell, History, Library, ListChecks, Play } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useTilt } from "@/src/components/gymbro/useTilt";
 import { ExerciseService } from "@/src/services/ExerciseService";
 import { RoutineService } from "@/src/services/RoutineService";
 import { WorkoutService } from "@/src/services/WorkoutService";
@@ -124,9 +125,14 @@ function HomeNavCard({
   imageSrc: string;
   className?: string;
 }) {
+  const { tiltStyle, glareStyle, onMouseMove, onMouseLeave } = useTilt();
+
   return (
     <Link
       href={href}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+      style={tiltStyle}
       className={cn(
         "group relative min-h-40 overflow-hidden rounded-2xl border border-white/7 bg-[#1a1a1b] p-4 transition-all hover:border-[#c8f135]/35 hover:bg-[#1d1d1e]",
         className,
@@ -135,6 +141,7 @@ function HomeNavCard({
       <Image src={imageSrc} alt="" width={190} height={190} className="pointer-events-none absolute -right-16 top-1/2 size-52 -translate-y-1/2 object-contain opacity-[0.08] transition-opacity group-hover:opacity-[0.14]" />
       <div className="pointer-events-none absolute -right-10 top-1/2 h-36 w-36 -translate-y-1/2 rounded-full opacity-40 blur-2xl" style={{ backgroundColor: accent }} />
       <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[radial-gradient(circle_at_left,rgba(200,241,53,0.08)_0%,transparent_62%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-20 rounded-[inherit]" style={glareStyle} />
       <div className="relative z-10 flex h-full flex-col justify-between gap-8">
         <div className="flex items-start justify-between gap-3">
           <div className="flex size-11 items-center justify-center rounded-xl border bg-white/[0.03]" style={{ borderColor: `${accent}40`, color: accent }}>
@@ -151,6 +158,30 @@ function HomeNavCard({
   );
 }
 
+function useCountUp(target: number, duration = 1000) {
+  const [display, setDisplay] = useState(0);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    if (target === 0) { setDisplay(0); return; }
+
+    const start = performance.now();
+
+    function tick(now: number) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(2, -10 * progress);
+      setDisplay(Math.round(target * eased));
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick);
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
+  }, [target, duration]);
+
+  return display;
+}
+
 function StatCard({
   label,
   value,
@@ -164,6 +195,9 @@ function StatCard({
   icon: typeof Dumbbell;
   imageSrc: string;
 }) {
+  const counted = useCountUp(typeof value === "number" ? value : 0);
+  const displayValue = typeof value === "number" ? counted : value;
+
   return (
     <Card className="group relative overflow-hidden rounded-2xl border-[#c8f135]/12 bg-[#1a1a1b] py-0 transition-colors hover:border-[#c8f135]/30">
       <Image src={imageSrc} alt="" width={140} height={140} className="pointer-events-none absolute -right-10 top-1/2 size-36 -translate-y-1/2 object-contain opacity-[0.06] transition-opacity group-hover:opacity-[0.12]" />
@@ -174,7 +208,7 @@ function StatCard({
           <Icon className="size-4" />
         </div>
         <p className="mt-4 text-[10px] font-semibold tracking-widest text-white/35 uppercase">{label}</p>
-        <p className="mt-2 truncate text-2xl font-semibold text-[#f0f0ee]">{value}</p>
+        <p className="mt-2 truncate text-2xl font-semibold text-[#f0f0ee]">{displayValue}</p>
         <p className="mt-1 truncate text-xs text-white/30">{detail}</p>
       </CardContent>
     </Card>
@@ -269,10 +303,18 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-            <StatCard label="Routines" value={stats.routines} detail="Templates ready" icon={ListChecks} imageSrc="/assets/cards/routine.png" />
-            <StatCard label="Exercises" value={stats.exercises} detail="Library movements" icon={Library} imageSrc="/assets/cards/exercises.png" />
-            <StatCard label="Workouts" value={stats.workouts} detail="Sessions tracked" icon={History} imageSrc="/assets/cards/home-workout-history.png" />
-            <StatCard label="Latest" value={formatDate(stats.latestWorkout?.date)} detail={stats.latestWorkout?.routine?.name ?? stats.latestWorkout?.name ?? "Workout history"} icon={CalendarDays} imageSrc="/assets/cards/progress-card.png" />
+            {(
+              [
+                { label: "Routines", value: stats.routines, detail: "Templates ready", icon: ListChecks, imageSrc: "/assets/cards/routine.png" },
+                { label: "Exercises", value: stats.exercises, detail: "Library movements", icon: Library, imageSrc: "/assets/cards/exercises.png" },
+                { label: "Workouts", value: stats.workouts, detail: "Sessions tracked", icon: History, imageSrc: "/assets/cards/home-workout-history.png" },
+                { label: "Latest", value: formatDate(stats.latestWorkout?.date), detail: stats.latestWorkout?.routine?.name ?? stats.latestWorkout?.name ?? "Workout history", icon: CalendarDays, imageSrc: "/assets/cards/progress-card.png" },
+              ] as const
+            ).map((stat, index) => (
+              <div key={stat.label} className="stagger-item" style={{ "--stagger-index": index } as React.CSSProperties}>
+                <StatCard {...stat} />
+              </div>
+            ))}
           </div>
         )}
       </div>

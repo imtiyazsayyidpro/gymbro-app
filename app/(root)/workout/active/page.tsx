@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import React, { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, History, MoreVertical, Pencil, Play, Plus, Trash2 } from "lucide-react";
@@ -352,6 +352,8 @@ export default function ActiveWorkoutPage() {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [lastSetSummary, setLastSetSummary] = useState<LastSetSummary>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [flashingSetId, setFlashingSetId] = useState<number | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [historyExercise, setHistoryExercise] = useState<WorkoutExercise | null>(null);
   const [lastExerciseSession, setLastExerciseSession] = useState<ExerciseLastSession | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -459,6 +461,13 @@ export default function ActiveWorkoutPage() {
     );
     setSetForm(emptySetForm);
     setLastSetSummary(summary);
+
+    if (flashTimerRef.current !== null) window.clearTimeout(flashTimerRef.current);
+    setFlashingSetId(optimisticSet.id);
+    flashTimerRef.current = window.setTimeout(() => {
+      setFlashingSetId(null);
+      flashTimerRef.current = null;
+    }, 600);
 
     if (currentExercise.restSeconds && currentExercise.restSeconds > 0) {
       setTimerSeconds(currentExercise.restSeconds);
@@ -683,6 +692,7 @@ export default function ActiveWorkoutPage() {
                         setSetForm={setSetForm}
                         currentSets={currentSets}
                         isSavingSet={isSavingSet}
+                        flashingSetId={flashingSetId}
                         onSubmit={handleAddSet}
                         onEditSet={(set) => {
                           setEditingSet(set);
@@ -863,6 +873,7 @@ function LoggingPanel({
   setSetForm,
   currentSets,
   isSavingSet,
+  flashingSetId,
   onSubmit,
   onEditSet,
   onDeleteSet,
@@ -871,6 +882,7 @@ function LoggingPanel({
   setSetForm: React.Dispatch<React.SetStateAction<SetForm>>;
   currentSets: WorkoutSet[];
   isSavingSet: boolean;
+  flashingSetId: number | null;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onEditSet: (set: WorkoutSet) => void;
   onDeleteSet: (set: WorkoutSet) => void;
@@ -947,7 +959,14 @@ function LoggingPanel({
           <p className="rounded-xl border border-white/6 bg-white/[0.02] p-3 text-sm text-white/35">No sets yet.</p>
         ) : (
           currentSets.map((set) => (
-            <div key={set.id} className="flex items-center gap-3 rounded-xl border border-white/6 bg-white/[0.02] p-2">
+            <div
+              key={set.id}
+              className={cn(
+                "flex items-center gap-3 rounded-xl border border-white/6 bg-white/[0.02] p-2",
+                set.id === flashingSetId ? "set-complete-flash" : "stagger-item",
+              )}
+              style={{ "--stagger-index": 0 } as React.CSSProperties}
+            >
               <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/5 text-xs font-semibold text-white/55">{set.setNumber}</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-[#f0f0ee]">
